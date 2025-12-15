@@ -1,29 +1,67 @@
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
+const pool = require("../config/db"); // pool dari pg
 
-// MOCK DATABASE
-const users = [];
-
+/**
+ * REGISTER
+ */
 exports.register = async (payload) => {
-  const hashed = await bcrypt.hash(payload.password, 10);
+  try {
+    const { email, first_name, last_name, password } = payload;
 
-  users.push({ ...payload, password: hashed });
+    // Cek apakah user sudah ada
+    const checkQuery = "SELECT email FROM users WHERE email = $1";
+    const checkResult = await pool.query(checkQuery, [email]);
+    if (checkResult.rows.length > 0) {
+      return error(101, "Email sudah terdaftar");
+    }
 
-  return success("Registrasi berhasil silahkan login");
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Simpan ke DB
+    const insertQuery = `
+      INSERT INTO users (email, first_name, last_name, password)
+      VALUES ($1, $2, $3, $4)
+      RETURNING email, first_name, last_name
+    `;
+    const insertParams = [email, first_name, last_name, hashedPassword];
+    const result = await pool.query(insertQuery, insertParams);
+
+    return success("Registrasi berhasil silahkan login", result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    return error(500, "Terjadi kesalahan server");
+  }
 };
 
+/**
+ * LOGIN
+ */
 exports.login = async ({ email, password }) => {
-  const user = users.find((u) => u.email === email);
-  if (!user) return error(103, "Username atau password salah");
+  try {
+    const query = "SELECT * FROM users WHERE email = $1";
+    const result = await pool.query(query, [email]);
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return error(103, "Username atau password salah");
+    if (result.rows.length === 0) {
+      return error(103, "Username atau password salah");
+    }
 
-  const token = generateToken({ email: user.email });
-  return success("Login Sukses", { token });
-};
+    const user = result.rows[0];
 
-exports.profile = (user) => {
-  return success("Success", user);
+    // Cek password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return error(103, "Username atau password salah");
+    }
+
+    // Generate token
+    const token = generateToken({ email: user.email });
+
+    return success("Login sukses", { token });
+  } catch (err) {
+    console.error(err);
+    return error(500, "Terjadi kesalahan server");
+  }
 };

@@ -21,7 +21,6 @@ exports.updateProfile = async (req, res) => {
 
   return res.json({
     status: 0,
-    message: "Update Profile Success",
     data: profile,
   });
 };

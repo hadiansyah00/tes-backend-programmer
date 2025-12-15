@@ -1,8 +1,21 @@
+openapi: 3.0.3
+info:
+  title: Nutech Integrasi API
+  version: 1.0.0
+  description: API untuk Module Membership, Information, dan Transaction
+servers:
+  - url: https://api.nutech-integrasi.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 paths:
   /registration:
     post:
       tags:
-        - Membership
+        - Module Membership
       summary: Registrasi User
       description: >
         Endpoint untuk registrasi user baru.
@@ -47,194 +60,401 @@ paths:
                 email_invalid:
                   value:
                     status: 102
-                    message: Paramter email tidak sesuai format
+                    message: Parameter email tidak sesuai format
                     data: null
 
   /login:
-  post:
-    tags:
-      - Membership
-    summary: Login User
-    description: >
-      Endpoint untuk autentikasi user.
-      Jika berhasil, sistem akan mengembalikan token JWT.
-    requestBody:
-      required: true
-      content:
-        application/json:
+    post:
+      tags:
+        - Module Membership
+      summary: Login User
+      description: >
+        Endpoint untuk autentikasi user.
+        Jika berhasil, sistem akan mengembalikan token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@nutech-integrasi.com
+                password:
+                  type: string
+                  example: hadi1234
+      responses:
+        "200":
+          description: Login Response
+          content:
+            application/json:
+              examples:
+                success:
+                  summary: Login Berhasil
+                  value:
+                    status: 0
+                    message: Login Sukses
+                    data:
+                      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                email_invalid:
+                  summary: Format Email Tidak Valid
+                  value:
+                    status: 102
+                    message: Parameter email tidak sesuai format
+                    data: null
+                login_failed:
+                  summary: Username atau Password Salah
+                  value:
+                    status: 103
+                    message: Username atau password salah
+                    data: null
+
+  /profile:
+    get:
+      tags:
+        - Module Membership
+      summary: Get Profile User
+      description: >
+        API Profile **Private** (memerlukan Bearer Token JWT).
+        Digunakan untuk mendapatkan informasi profile user yang sedang login.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Berhasil mengambil profile
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Success
+                data:
+                  email: user@nutech-integrasi.com
+                  first_name: User
+                  last_name: Nutech
+                  profile_image: https://example.com/profile.jpg
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+    put:
+      tags:
+        - Module Membership
+      summary: Update Profile User
+      description: >
+        API Update Profile **Private** (memerlukan Bearer Token JWT).
+        Digunakan untuk mengupdate data profile user yang sedang login.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - last_name
+              properties:
+                first_name:
+                  type: string
+                  example: User
+                last_name:
+                  type: string
+                  example: Update
+      responses:
+        "200":
+          description: Profile berhasil diupdate
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Update Profile Success
+                data:
+                  email: user@nutech-integrasi.com
+                  first_name: User
+                  last_name: Update
+                  profile_image: https://example.com/profile.jpg
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /profile/image:
+    put:
+      tags:
+        - Module Membership
+      summary: Update Profile Image
+      description: >
+        API Update Profile Image **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - profile_image
+              properties:
+                profile_image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Profile image berhasil diupdate
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Update Profile Image Success
+                data:
+                  profile_image: https://example.com/profile-updated.jpg
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /banner:
+    get:
+      tags:
+        - Module Information
+      summary: Get Banner List
+      description: API Banner **Public** (tidak memerlukan Token).
+      responses:
+        "200":
+          description: Berhasil mendapatkan list banner
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Sukses
+                data:
+                  - banner_name: Banner 1
+                    banner_image: https://example.com/banner1.png
+                    description: Promo Spesial
+                  - banner_name: Banner 2
+                    banner_image: https://example.com/banner2.png
+                    description: Cashback Akhir Tahun
+
+  /services:
+    get:
+      tags:
+        - Module Information
+      summary: Get Service List
+      description: API Service **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Berhasil mendapatkan list service
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Sukses
+                data:
+                  - service_code: PAJAK
+                    service_name: Pajak PBB
+                    service_icon: https://nutech-integrasi.app/dummy.jpg
+                    service_tariff: 40000
+                  - service_code: PLN
+                    service_name: Listrik
+                    service_icon: https://nutech-integrasi.app/dummy.jpg
+                    service_tariff: 10000
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /balance:
+    get:
+      tags:
+        - Module Transaction
+      summary: Get Balance
+      description: API Balance **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Berhasil mendapatkan balance
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Sukses
+                data:
+                  balance: 150000
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /topup:
+    post:
+      tags:
+        - Module Transaction
+      summary: Top Up Balance
+      description: API Top Up **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  example: 50000
+      responses:
+        "200":
+          description: Top up berhasil
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Top Up Balance Success
+                data:
+                  balance: 150000
+        "400":
+          description: Amount tidak valid
+          content:
+            application/json:
+              example:
+                status: 102
+                message: Amount harus berupa angka dan lebih dari 0
+                data: null
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /transaction:
+    post:
+      tags:
+        - Module Transaction
+      summary: Transaction Payment
+      description: API Transaction **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_code
+              properties:
+                service_code:
+                  type: string
+                  example: PULSA
+      responses:
+        "200":
+          description: Transaksi berhasil
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Transaksi berhasil
+                data:
+                  invoice_number: "1765818576085"
+                  service_code: PULSA
+                  service_name: Pulsa
+                  transaction_type: PAYMENT
+                  total_amount: 40000
+                  created_on: "2025-12-15T17:09:36.085Z"
+        "400":
+          description: Saldo tidak mencukupi
+          content:
+            application/json:
+              example:
+                status: 105
+                message: Saldo tidak mencukupi
+                data: null
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null
+
+  /transaction/history:
+    get:
+      tags:
+        - Module Transaction
+      summary: Transaction History
+      description: API History **Private** (memerlukan Bearer Token JWT).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
           schema:
-            type: object
-            required:
-              - email
-              - password
-            properties:
-              email:
-                type: string
-                format: email
-                example: user@nutech-integrasi.com
-              password:
-                type: string
-                example: hadi1234
-    responses:
-      "200":
-        description: Login Response
-        content:
-          application/json:
-            examples:
-              success:
-                summary: Login Berhasil
-                value:
-                  status: 0
-                  message: Login Sukses
-                  data:
-                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-              email_invalid:
-                summary: Format Email Tidak Valid
-                value:
-                  status: 102
-                  message: Paramter email tidak sesuai format
-                  data: null
-              login_failed:
-                summary: Username atau Password Salah
-                value:
-                  status: 103
-                  message: Username atau password salah
-                  data: null
-/profile:
-  get:
-    tags:
-      - Membership
-    summary: Get Profile User
-    description: |
-      API Profile **Private** (memerlukan Bearer Token JWT).
-
-      Digunakan untuk mendapatkan informasi profile user yang sedang login.
-
-      **Ketentuan:**
-      - Service ini wajib menggunakan **Bearer Token JWT**
-      - Tidak ada parameter `email` di query maupun request body
-      - Email user diambil dari **payload JWT**
-      - Response mengikuti standar dokumentasi
-    security:
-      - bearerAuth: []
-    responses:
-      "200":
-        description: Berhasil mengambil profile
-        content:
-          application/json:
-            example:
-              status: 0
-              message: Success
-              data:
-                email: user@nutech-integrasi.com
-                first_name: User
-                last_name: Nutech
-                profile_image: https://example.com/profile.jpg
-      "401":
-        description: Token tidak valid atau kadaluarsa
-        content:
-          application/json:
-            example:
-              status: 108
-              message: Token tidak valid atau kadaluarsa
-              data: null
-  put:
-    tags:
-      - Membership
-    summary: Update Profile User
-    description: |
-      API Update Profile **Private** (memerlukan Bearer Token JWT).
-
-      Digunakan untuk mengupdate data profile user yang sedang login.
-
-      **Ketentuan:**
-      - Service ini wajib menggunakan **Bearer Token JWT**
-      - Tidak ada parameter `email` di query maupun request body
-      - Email user diambil dari **payload JWT**
-      - Hanya field `first_name` dan `last_name` yang dapat diupdate
-    security:
-      - bearerAuth: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - first_name
-              - last_name
-            properties:
-              first_name:
-                type: string
-                example: User
-              last_name:
-                type: string
-                example: Update
-    responses:
-      "200":
-        description: Profile berhasil diupdate
-        content:
-          application/json:
-            example:
-              status: 0
-              message: Update Profile Success
-              data:
-                email: user@nutech-integrasi.com
-                first_name: User
-                last_name: Update
-                profile_image: https://example.com/profile.jpg
-      "401":
-        description: Token tidak valid atau kadaluarsa
-        content:
-          application/json:
-            example:
-              status: 108
-              message: Token tidak valid atau kadaluarsa
-              data: null
-/profile/image:
-  put:
-    tags:
-      - Membership
-    summary: Update Profile Image
-    description: |
-      API Update Profile Image **Private** (memerlukan Bearer Token JWT).
-
-      Digunakan untuk mengupdate foto profile user.
-
-      **Ketentuan:**
-      - Service ini wajib menggunakan **Bearer Token JWT**
-      - Tidak ada parameter `email` di query maupun request body
-      - Email user diambil dari **payload JWT**
-      - Upload menggunakan **multipart/form-data**
-    security:
-      - bearerAuth: []
-    requestBody:
-      required: true
-      content:
-        multipart/form-data:
-          schema:
-            type: object
-            required:
-              - profile_image
-            properties:
-              profile_image:
-                type: string
-                format: binary
-    responses:
-      "200":
-        description: Profile image berhasil diupdate
-        content:
-          application/json:
-            example:
-              status: 0
-              message: Update Profile Image Success
-              data:
-                profile_image: https://example.com/profile-updated.jpg
-      "401":
-        description: Token tidak valid atau kadaluarsa
-        content:
-          application/json:
-            example:
-              status: 108
-              message: Token tidak valid atau kadaluarsa
-              data: null
+            type: integer
+          required: false
+          description: Jumlah data yang ditampilkan (opsional)
+      responses:
+        "200":
+          description: Berhasil mendapatkan history transaksi
+          content:
+            application/json:
+              example:
+                status: 0
+                message: Sukses
+                data:
+                  - invoice_number: "1765818576085"
+                    transaction_type: PAYMENT
+                    service_code: PULSA
+                    service_name: Pulsa
+                    total_amount: 40000
+                    created_on: "2025-12-15T17:09:36.085Z"
+                  - invoice_number: null
+                    transaction_type: TOPUP
+                    service_code: null
+                    service_name: null
+                    total_amount: 50000
+                    created_on: "2025-12-14T10:00:00.000Z"
+        "401":
+          description: Token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              example:
+                status: 108
+                message: Token tidak valid atau kadaluarsa
+                data: null

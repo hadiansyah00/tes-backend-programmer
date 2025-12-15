@@ -4,9 +4,23 @@ const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 
 const swaggerSpec = require("./config/swagger");
-const membershipRoutes = require("./routes/routes");
+const membershipRoutes = require("./routes/index.routes");
+const db = require("./config/db");
 
 const app = express();
+
+/**
+ * Test Database Connection (on startup)
+ */
+(async () => {
+  try {
+    const result = await db.query("SELECT now()");
+    console.log("✅ Database connected at:", result.rows[0].now);
+  } catch (error) {
+    console.error("❌ Database connection failed:", error.message);
+    process.exit(1); // stop server if DB fails
+  }
+})();
 
 /**
  * Global Middlewares
