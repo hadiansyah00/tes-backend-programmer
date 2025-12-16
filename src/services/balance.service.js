@@ -1,28 +1,28 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 const { success, error } = require("../utils/response");
 
 /**
- * GET BALANCE USER
+ * GET BALANCE BY USER ID
  */
-exports.getBalance = async (email) => {
+exports.getBalanceByUserId = async (userId) => {
   try {
     const query = `
       SELECT balance
-      FROM users
-      WHERE email = $1
+      FROM balances
+      WHERE user_id = $1
     `;
 
-    const result = await pool.query(query, [email]);
+    const result = await pool.query(query, [userId]);
 
-    if (result.rows.length === 0) {
-      return error(404, "User tidak ditemukan");
+    if (result.rowCount === 0) {
+      return error(404, "Balance belum diinisialisasi");
     }
 
-    return success("Sukses", {
+    return success(200, "Get Balance Berhasil", {
       balance: result.rows[0].balance,
     });
   } catch (err) {
-    console.error(err);
+    console.error("GET BALANCE SERVICE ERROR:", err);
     return error(500, "Terjadi kesalahan server");
   }
 };

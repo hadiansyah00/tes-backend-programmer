@@ -1,9 +1,30 @@
 const balanceService = require("../services/balance.service");
 
+/**
+ * GET USER BALANCE
+ */
 exports.getBalance = async (req, res) => {
-  const { email } = req.user;
+  try {
+    const { id } = req.user || {};
 
-  const response = await balanceService.getBalance(email);
+    if (!id) {
+      return res.status(401).json({
+        status: 108,
+        message: "Token tidak valid atau kadaluarsa",
+        data: null,
+      });
+    }
 
-  return res.status(response.httpCode).json(response.body);
+    const response = await balanceService.getBalanceByUserId(id);
+
+    return res.status(response.httpCode).json(response.body);
+  } catch (err) {
+    console.error("GET BALANCE CONTROLLER ERROR:", err);
+
+    return res.status(500).json({
+      status: 99,
+      message: "Internal Server Error",
+      data: null,
+    });
+  }
 };

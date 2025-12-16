@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Nutech Integrasi API
+  title: Nutech Integrasi API Documentation
   version: 1.0.0
   description: API untuk Module Membership, Information, dan Transaction
 servers:

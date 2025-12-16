@@ -57,7 +57,10 @@ exports.login = async ({ email, password }) => {
     }
 
     // Generate token
-    const token = generateToken({ email: user.email });
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+    });
 
     return success("Login sukses", { token });
   } catch (err) {

@@ -55,21 +55,29 @@ CREATE TABLE balances (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
   balance INTEGER NOT NULL DEFAULT 0,
-  updated_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  CONSTRAINT unique_user_balance UNIQUE (user_id),
+  CONSTRAINT balance_non_negative CHECK (balance >= 0)
 );
-INSERT INTO balances (user_id, balance)
-VALUES (1, 150000);
 
+CREATE INDEX idx_balances_user_id ON balances(user_id);
 CREATE TABLE transactions (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id),
-  invoice_number VARCHAR(50) UNIQUE,
-  transaction_type VARCHAR(20) NOT NULL,
-  service_code VARCHAR(50),
-  total_amount INTEGER NOT NULL,
-  created_on TIMESTAMP DEFAULT NOW()
+  user_id INTEGER NOT NULL
+    REFERENCES users(id)
+    ON DELETE CASCADE,
+  invoice_number VARCHAR(50) NOT NULL UNIQUE,
+  transaction_type VARCHAR(20) NOT NULL
+    CHECK (transaction_type IN ('TOPUP', 'PAYMENT')),
+  service_code VARCHAR(50) NULL,
+  description TEXT NOT NULL,
+  total_amount INTEGER NOT NULL CHECK (total_amount > 0),
+  created_on TIMESTAMP NOT NULL DEFAULT NOW()
 );
+-- foreign key ke services (opsional tapi bagus)
 ALTER TABLE transactions
 ADD CONSTRAINT fk_service
 FOREIGN KEY (service_code)
 REFERENCES services(service_code);
+

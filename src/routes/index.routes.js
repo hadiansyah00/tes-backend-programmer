@@ -33,7 +33,7 @@ router.get("/banner", getBannerList);
 router.get("/profile", auth, profileCtrl.getProfile);
 router.get("/services", auth, serviceCtrl.getServiceList);
 router.get("/balance", auth, balanceCtrl.getBalance);
-// router.post("/topup", auth, validate(schema.topup), topupCtrl.topUpBalance);
+router.post("/topup", auth, validate(schema.topup), topupCtrl.topUpBalance);
 router.post("/transaction", auth, transactionCtrl.transaction);
 router.get("/transaction/history", auth, historyCtrl.getHistory);
 

@@ -1,90 +1,111 @@
-const pool = require("../config/db");
+const { pool } = require("../config/db");
 const { success, error } = require("../utils/response");
 
 /**
- * PAYMENT TRANSACTION
+ * CREATE PAYMENT TRANSACTION
  */
-exports.createTransaction = async (email, service_code) => {
+exports.createTransaction = async (userId, serviceCode) => {
   const client = await pool.connect();
+
+  const rollbackAndReturn = async (response) => {
+    await client.query("ROLLBACK");
+    return response;
+  };
 
   try {
     await client.query("BEGIN");
 
-    // Ambil service
-    const serviceQuery = `
+    // 1️⃣ Ambil service
+    const serviceResult = await client.query(
+      `
       SELECT service_code, service_name, service_tariff
       FROM services
       WHERE service_code = $1
-    `;
-    const serviceResult = await client.query(serviceQuery, [service_code]);
+      `,
+      [serviceCode]
+    );
 
-    if (serviceResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return error(404, "Service tidak ditemukan");
+    if (serviceResult.rowCount === 0) {
+      return rollbackAndReturn(
+        error(102, "Service ataus Layanan tidak ditemukan")
+      );
     }
 
     const service = serviceResult.rows[0];
 
-    // Ambil balance user
-    const balanceQuery = `
-      SELECT balance
-      FROM users
-      WHERE email = $1
-      FOR UPDATE
-    `;
-    const balanceResult = await client.query(balanceQuery, [email]);
+    // 2️⃣ Cek balance
+    const balanceResult = await client.query(
+      `SELECT balance FROM balances WHERE user_id = $1`,
+      [userId]
+    );
 
-    if (balanceResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return error(404, "User tidak ditemukan");
+    if (balanceResult.rowCount === 0) {
+      return rollbackAndReturn(error(404, "Balance belum diinisialisasi"));
     }
 
     if (balanceResult.rows[0].balance < service.service_tariff) {
-      await client.query("ROLLBACK");
-      return error(400, "Saldo tidak mencukupi");
+      return rollbackAndReturn(error(105, "Saldo tidak mencukupi"));
     }
 
-    // Kurangi balance
-    const updateBalanceQuery = `
-      UPDATE users
+    // 3️⃣ Generate invoice
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const countResult = await client.query(
+      `SELECT COUNT(*) FROM transactions WHERE invoice_number LIKE $1`,
+      [`INV${dateStr}%`]
+    );
+
+    const sequence = String(Number(countResult.rows[0].count) + 1).padStart(
+      4,
+      "0"
+    );
+    const invoiceNumber = `INV${dateStr}-${sequence}`;
+
+    // 4️⃣ Update balance
+    await client.query(
+      `
+      UPDATE balances
       SET balance = balance - $1,
           updated_at = NOW()
-      WHERE email = $2
-    `;
-    await client.query(updateBalanceQuery, [service.service_tariff, email]);
+      WHERE user_id = $2
+      `,
+      [service.service_tariff, userId]
+    );
 
-    // Generate invoice
-    const invoice_number = Date.now().toString();
-
-    // Insert transaksi PAYMENT
-    const insertTransactionQuery = `
+    // 5️⃣ Insert transaction
+    await client.query(
+      `
       INSERT INTO transactions (
-        email,
+        user_id,
         invoice_number,
-        service_code,
-        service_name,
         transaction_type,
+        service_code,
+        description,
         total_amount
       )
-      VALUES ($1, $2, $3, $4, 'PAYMENT', $5)
-      RETURNING invoice_number, service_code, service_name,
-                transaction_type, total_amount, created_on
-    `;
-
-    const trxResult = await client.query(insertTransactionQuery, [
-      email,
-      invoice_number,
-      service.service_code,
-      service.service_name,
-      service.service_tariff,
-    ]);
+      VALUES ($1, $2, 'PAYMENT', $3, $4, $5)
+      `,
+      [
+        userId,
+        invoiceNumber,
+        service.service_code,
+        service.service_name,
+        service.service_tariff,
+      ]
+    );
 
     await client.query("COMMIT");
 
-    return success("Transaksi berhasil", trxResult.rows[0]);
+    return success(200, "Transaksi berhasil", {
+      invoice_number: invoiceNumber,
+      service_code: service.service_code,
+      description: service.service_name,
+      transaction_type: "PAYMENT",
+      total_amount: service.service_tariff,
+      created_on: new Date(),
+    });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(err);
+    console.error("[TRANSACTION_SERVICE]", err);
     return error(500, "Terjadi kesalahan server");
   } finally {
     client.release();

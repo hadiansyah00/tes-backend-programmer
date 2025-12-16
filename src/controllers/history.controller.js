@@ -1,13 +1,36 @@
 const historyService = require("../services/history.service");
 
-/**
- * TRANSACTION HISTORY
- */
 exports.getHistory = async (req, res) => {
-  const { email } = req.user;
-  const { limit } = req.query;
+  try {
+    const { id } = req.user;
+    const offset = Number(req.query.offset) || 0;
+    const limit = Number(req.query.limit) || 10;
 
-  const response = await historyService.getHistory(email, limit);
+    if (!id) {
+      return res.status(401).json({
+        status: 108,
+        message: "Unauthorized",
+        data: null,
+      });
+    }
 
-  return res.status(response.httpCode).json(response.body);
+    const records = await historyService.getHistory(id, offset, limit);
+
+    return res.json({
+      status: 0,
+      message: "Get Transaksi History Berhasil",
+      data: {
+        offset,
+        limit,
+        records,
+      },
+    });
+  } catch (err) {
+    console.error("GET HISTORY ERROR:", err);
+    return res.status(500).json({
+      status: 99,
+      message: "Internal Server Error",
+      data: null,
+    });
+  }
 };

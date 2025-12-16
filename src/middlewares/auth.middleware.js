@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader) {
     return res.status(401).json({
       status: 108,
       message: "Token tidak valid atau kadaluarsa",
@@ -15,12 +15,15 @@ module.exports = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // email dari payload
+
+    console.log("JWT DECODED:", decoded); // 🔥 DEBUG
+    req.user = decoded;
+
     next();
   } catch (err) {
     return res.status(401).json({
       status: 108,
-      message: "Token tidak valid atau kadaluarsa",
+      message: "Invalid token",
       data: null,
     });
   }
