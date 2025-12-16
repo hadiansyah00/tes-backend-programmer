@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 
 const swaggerSpec = require("./config/swagger");
@@ -10,7 +11,9 @@ const db = require("./config/db");
 const app = express();
 
 /**
- * Test Database Connection (on startup)
+ * =====================================================
+ * 🔌 Database Connection Check (Startup)
+ * =====================================================
  */
 (async () => {
   try {
@@ -18,28 +21,50 @@ const app = express();
     console.log("✅ Database connected at:", result.rows[0].now);
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
-    process.exit(1); // stop server if DB fails
+    process.exit(1); // Stop app if DB fails
   }
 })();
 
 /**
- * Global Middlewares
+ * =====================================================
+ * 🌐 Global Middlewares
+ * =====================================================
  */
-app.use(express.json());
+app.use(cors()); // allow all origins (safe for API)
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
 
 /**
- * Static Files (Profile Image)
+ * =====================================================
+ * 📂 Static Files
+ * =====================================================
  */
 app.use("/uploads", express.static("uploads"));
 
 /**
- * Routes
+ * =====================================================
+ * 🧪 Health Check
+ * =====================================================
+ */
+app.get("/", (req, res) => {
+  res.json({
+    status: 0,
+    message: "API running",
+    env: process.env.NODE_ENV || "development",
+  });
+});
+
+/**
+ * =====================================================
+ * 🚏 API Routes
+ * =====================================================
  */
 app.use("/", membershipRoutes);
 
 /**
- * Swagger Documentation
+ * =====================================================
+ * 📘 Swagger Documentation
+ * =====================================================
  */
 app.use(
   "/api-docs",
@@ -47,29 +72,36 @@ app.use(
   swaggerUi.setup(swaggerSpec, {
     explorer: true,
     customSiteTitle: "API Contract SIMS PPOB",
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
   })
 );
 
 /**
- * Global Error Handler
- */
-app.use((err, req, res, next) => {
-  console.error(err);
-
-  return res.status(err.status || 500).json({
-    status: err.code || 99,
-    message: err.message || "Internal Server Error",
-    data: null,
-  });
-});
-
-/**
- * 404 Handler
+ * =====================================================
+ * ❌ 404 Handler
+ * =====================================================
  */
 app.use((req, res) => {
   res.status(404).json({
     status: 404,
     message: "Endpoint tidak ditemukan",
+    data: null,
+  });
+});
+
+/**
+ * =====================================================
+ * 🚨 Global Error Handler
+ * =====================================================
+ */
+app.use((err, req, res, next) => {
+  console.error("🔥 ERROR:", err);
+
+  res.status(err.status || 500).json({
+    status: err.code || 99,
+    message: err.message || "Internal Server Error",
     data: null,
   });
 });
