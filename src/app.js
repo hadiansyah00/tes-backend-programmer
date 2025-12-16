@@ -9,28 +9,17 @@ const membershipRoutes = require("./routes/index.routes");
 const db = require("./config/db");
 
 const app = express();
+
 /**
  * =====================================================
- * 🔐 CORS CONFIG (PRODUCTION SAFE – NODE 22 COMPATIBLE)
+ * 🌐 CORS CONFIG (FINAL – BROWSER & RAILWAY SAFE)
  * =====================================================
  */
-const allowedOrigins = [
-  "https://tes-backend-programmer.railway.app", // Swagger & frontend
-];
+const cors = require("cors");
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // allow non-browser tools (Postman, curl)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // JANGAN throw Error (biar app tidak crash)
-      return callback(null, false);
-    },
+    origin: true, // echo back request origin (AMAN UNTUK BROWSER & SWAGGER)
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
