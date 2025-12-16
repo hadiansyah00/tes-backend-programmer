@@ -12,6 +12,34 @@ const app = express();
 
 /**
  * =====================================================
+ * 🔐 CORS CONFIG (PRODUCTION SAFE)
+ * =====================================================
+ */
+const allowedOrigins = [
+  "https://tes-backend-programmer.railway.app", // Swagger & frontend
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow non-browser clients (Postman, curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+/**
+ * =====================================================
  * 🔌 Database Connection Check (Startup)
  * =====================================================
  */
@@ -21,7 +49,7 @@ const app = express();
     console.log("✅ Database connected at:", result.rows[0].now);
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
-    process.exit(1); // Stop app if DB fails
+    process.exit(1);
   }
 })();
 
@@ -30,7 +58,6 @@ const app = express();
  * 🌐 Global Middlewares
  * =====================================================
  */
-app.use(cors()); // allow all origins (safe for API)
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
 
