@@ -8,6 +8,12 @@ module.exports = swaggerJSDoc({
       version: "1.0.0",
       description: "Take Home Test API Documentation for SIMS PPOB",
     },
+    servers: [
+      {
+        url: process.env.BASE_URL || "http://localhost:3000",
+        description: "Production Server",
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -17,6 +23,11 @@ module.exports = swaggerJSDoc({
         },
       },
     },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
   apis: ["./src/docs/*.yaml"],
 });
