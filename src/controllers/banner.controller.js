@@ -1,24 +1,29 @@
-const db = require("../config/db");
+const bannerService = require("../services/banner.service");
 
-exports.getBannerList = async (req, res, next) => {
+/**
+ * GET BANNER LIST
+ */
+exports.getBannerList = async (req, res) => {
   try {
-    const query = `
-      SELECT 
-        banner_name,
-        banner_image,
-        description
-      FROM banners
-      ORDER BY id ASC
-    `;
+    const response = await bannerService.getBannerList();
 
-    const { rows } = await db.query(query);
+    // Safety net
+    if (!response || typeof response.httpCode !== "number") {
+      console.error("INVALID BANNER SERVICE RESPONSE:", response);
+      return res.status(500).json({
+        status: 500,
+        message: "Response service tidak valid",
+        data: null,
+      });
+    }
 
-    return res.status(200).json({
-      status: 0,
-      message: "Sukses",
-      data: rows,
+    return res.status(response.httpCode).json(response.body);
+  } catch (err) {
+    console.error("[BANNER_CONTROLLER_ERROR]", err);
+    return res.status(500).json({
+      status: 500,
+      message: "Terjadi kesalahan server",
+      data: null,
     });
-  } catch (error) {
-    next(error);
   }
 };

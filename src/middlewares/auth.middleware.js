@@ -3,27 +3,37 @@ const jwt = require("jsonwebtoken");
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
+  // Tidak ada Authorization header
   if (!authHeader) {
     return res.status(401).json({
-      status: 108,
+      status: 401,
       message: "Token tidak valid atau kadaluarsa",
       data: null,
     });
   }
 
-  const token = authHeader.split(" ")[1];
+  // Format harus: Bearer <token>
+  const [scheme, token] = authHeader.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    return res.status(401).json({
+      status: 401,
+      message: "Token tidak valid atau kadaluarsa",
+      data: null,
+    });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log("JWT DECODED:", decoded); // 🔥 DEBUG
+    // Simpan payload ke request
     req.user = decoded;
 
-    next();
+    return next();
   } catch (err) {
     return res.status(401).json({
-      status: 108,
-      message: "Invalid token",
+      status: 401,
+      message: "Token tidak valid atau kadaluarsa",
       data: null,
     });
   }

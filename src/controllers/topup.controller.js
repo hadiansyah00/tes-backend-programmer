@@ -5,20 +5,36 @@ const topupService = require("../services/topup.service");
  */
 exports.topUpBalance = async (req, res) => {
   try {
+    // 🔐 Guard authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        status: 99,
+        message: "Token tidak valid atau kadaluarsa",
+        data: null,
+      });
+    }
+
     const { id } = req.user;
-    console.log("JWT ID:", req.user.id); // ⬅️ WAJIB DI SINI
-    // ✅ ambil user_id dari JWT
     const { amount } = req.body;
 
     const response = await topupService.topup(id, amount);
 
+    // 🛡 Safety net
+    if (!response || typeof response.httpCode !== "number") {
+      console.error("INVALID TOPUP SERVICE RESPONSE:", response);
+      return res.status(500).json({
+        status: 99,
+        message: "Response service tidak valid",
+        data: null,
+      });
+    }
+
     return res.status(response.httpCode).json(response.body);
   } catch (err) {
-    console.error("TOPUP CONTROLLER ERROR:", err);
-
+    console.error("[TOPUP_CONTROLLER_ERROR]", err);
     return res.status(500).json({
       status: 99,
-      message: "Internal Server Error",
+      message: "Terjadi kesalahan server",
       data: null,
     });
   }

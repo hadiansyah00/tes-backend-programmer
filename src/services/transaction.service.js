@@ -1,21 +1,19 @@
 const { pool } = require("../config/db");
 const { success, error } = require("../utils/response");
+const { generateInvoice } = require("../utils/invoice");
 
 /**
- * CREATE PAYMENT TRANSACTION
+ * CREATE PAYMENT TRANSACTION (ATOMIC & SAFE)
  */
 exports.createTransaction = async (userId, serviceCode) => {
   const client = await pool.connect();
 
-  const rollbackAndReturn = async (response) => {
-    await client.query("ROLLBACK");
-    return response;
-  };
-
   try {
     await client.query("BEGIN");
 
+    // ===============================
     // 1️⃣ Ambil service
+    // ===============================
     const serviceResult = await client.query(
       `
       SELECT service_code, service_name, service_tariff
@@ -26,52 +24,39 @@ exports.createTransaction = async (userId, serviceCode) => {
     );
 
     if (serviceResult.rowCount === 0) {
-      return rollbackAndReturn(
-        error(102, "Service ataus Layanan tidak ditemukan")
-      );
+      await client.query("ROLLBACK");
+      return error(404, "Service atau Layanan tidak ditemukan");
     }
 
     const service = serviceResult.rows[0];
 
-    // 2️⃣ Cek balance
-    const balanceResult = await client.query(
-      `SELECT balance FROM balances WHERE user_id = $1`,
-      [userId]
-    );
-
-    if (balanceResult.rowCount === 0) {
-      return rollbackAndReturn(error(404, "Balance belum diinisialisasi"));
-    }
-
-    if (balanceResult.rows[0].balance < service.service_tariff) {
-      return rollbackAndReturn(error(105, "Saldo tidak mencukupi"));
-    }
-
-    // 3️⃣ Generate invoice
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const countResult = await client.query(
-      `SELECT COUNT(*) FROM transactions WHERE invoice_number LIKE $1`,
-      [`INV${dateStr}%`]
-    );
-
-    const sequence = String(Number(countResult.rows[0].count) + 1).padStart(
-      4,
-      "0"
-    );
-    const invoiceNumber = `INV${dateStr}-${sequence}`;
-
-    // 4️⃣ Update balance
-    await client.query(
+    // ===============================
+    // 2️⃣ Atomic potong saldo
+    // ===============================
+    const updateBalanceResult = await client.query(
       `
       UPDATE balances
-      SET balance = balance - $1,
-          updated_at = NOW()
+      SET balance = balance - $1
       WHERE user_id = $2
+        AND balance IS NOT NULL
+        AND balance >= $1
       `,
       [service.service_tariff, userId]
     );
 
-    // 5️⃣ Insert transaction
+    if (updateBalanceResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return error(400, "Saldo tidak mencukupi");
+    }
+
+    // ===============================
+    // 3️⃣ Generate invoice (simple & safe)
+    // ===============================
+    const invoiceNumber = await generateInvoice(client);
+
+    // ===============================
+    // 4️⃣ Simpan transaksi
+    // ===============================
     await client.query(
       `
       INSERT INTO transactions (
@@ -105,7 +90,10 @@ exports.createTransaction = async (userId, serviceCode) => {
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("[TRANSACTION_SERVICE]", err);
+    console.error("[TRANSACTION_SERVICE_ERROR]", {
+      message: err.message,
+      stack: err.stack,
+    });
     return error(500, "Terjadi kesalahan server");
   } finally {
     client.release();

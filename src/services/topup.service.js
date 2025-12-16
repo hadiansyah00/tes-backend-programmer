@@ -1,12 +1,10 @@
 const { pool } = require("../config/db");
 const { success, error } = require("../utils/response");
+const { generateInvoice } = require("../utils/invoice");
 
 exports.topup = async (userId, amount) => {
   if (!amount || isNaN(amount) || amount <= 0) {
-    return error(
-      102,
-      "Paramter amount hanya boleh angka dan tidak boleh lebih kecil dari 0"
-    );
+    return error(400, "Parameter amount harus berupa angka dan lebih dari 0");
   }
 
   const client = await pool.connect();
@@ -14,8 +12,9 @@ exports.topup = async (userId, amount) => {
   try {
     await client.query("BEGIN");
 
-    // 1️⃣ UPSERT BALANCE (Nambah, bukan replace)
-    const upsertBalanceQuery = `
+    // 1️⃣ UPSERT saldo (ATOMIC, updated_at VALID)
+    const balanceResult = await client.query(
+      `
       INSERT INTO balances (user_id, balance)
       VALUES ($1, $2)
       ON CONFLICT (user_id)
@@ -23,37 +22,14 @@ exports.topup = async (userId, amount) => {
         balance = balances.balance + EXCLUDED.balance,
         updated_at = NOW()
       RETURNING balance
-    `;
-
-    const balanceResult = await client.query(upsertBalanceQuery, [
-      userId,
-      amount,
-    ]);
-
-    // 2️⃣ Generate invoice number
-    const today = new Date();
-    const dateStr = today
-      .toISOString()
-      .slice(0, 10)
-      .split("-")
-      .reverse()
-      .join("");
-
-    const countResult = await client.query(
-      `
-      SELECT COUNT(*) FROM transactions
-      WHERE DATE(created_on) = CURRENT_DATE
-      `
+      `,
+      [userId, amount]
     );
 
-    const sequence = String(Number(countResult.rows[0].count) + 1).padStart(
-      3,
-      "0"
-    );
+    // 2️⃣ Invoice aman & unik
+    const invoiceNumber = await generateInvoice(client);
 
-    const invoiceNumber = `INV${dateStr}-${sequence}`;
-
-    // 3️⃣ Insert transaction TOPUP
+    // 3️⃣ Catat transaksi
     await client.query(
       `
       INSERT INTO transactions (
@@ -71,12 +47,12 @@ exports.topup = async (userId, amount) => {
 
     await client.query("COMMIT");
 
-    return success(200, "Top Up Balance Success", {
+    return success(200, "Top Up Balance berhasil", {
       balance: balanceResult.rows[0].balance,
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("TOPUP SERVICE ERROR:", err);
+    console.error("[TOPUP_SERVICE_ERROR]", err);
     return error(500, "Terjadi kesalahan server");
   } finally {
     client.release();

@@ -1,15 +1,14 @@
-const serviceService = require("../services/service.service");
+const registerService = require("../services/register.service");
 
 /**
- * GET SERVICE LIST
+ * Register user
  */
-exports.getServiceList = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const response = await serviceService.getServiceList();
+    const response = await registerService.register(req.body);
 
-    // Safety net
     if (!response || typeof response.httpCode !== "number") {
-      console.error("INVALID SERVICE SERVICE RESPONSE:", response);
+      console.error("INVALID REGISTER RESPONSE:", response);
       return res.status(500).json({
         status: 500,
         message: "Response service tidak valid",
@@ -19,7 +18,7 @@ exports.getServiceList = async (req, res) => {
 
     return res.status(response.httpCode).json(response.body);
   } catch (err) {
-    console.error("[SERVICE_CONTROLLER_ERROR]", err);
+    console.error("[REGISTER_CONTROLLER_ERROR]", err);
     return res.status(500).json({
       status: 500,
       message: "Terjadi kesalahan server",

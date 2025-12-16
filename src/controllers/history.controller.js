@@ -1,5 +1,7 @@
 const historyService = require("../services/history.service");
-
+/**
+ * GET TRANSACTION HISTORY
+ */
 exports.getHistory = async (req, res) => {
   try {
     const { id } = req.user;
@@ -13,7 +15,7 @@ exports.getHistory = async (req, res) => {
         data: null,
       });
     }
-
+    // Fetch history records
     const records = await historyService.getHistory(id, offset, limit);
 
     return res.json({

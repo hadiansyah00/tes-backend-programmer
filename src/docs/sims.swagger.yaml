@@ -15,12 +15,8 @@ paths:
   /registration:
     post:
       tags:
-        - Module Membership
-      summary: Registrasi User
-      description: >
-        Endpoint untuk registrasi user baru.
-        Setelah registrasi berhasil, user wajib login melalui endpoint /login
-        untuk mendapatkan token JWT.
+        - Authentication
+      summary: Registrasi user
       requestBody:
         required: true
         content:
@@ -45,32 +41,49 @@ paths:
                   example: Nutech
                 password:
                   type: string
-                  example: hadi1234
+                  example: password123
       responses:
         "200":
           description: Registrasi berhasil
           content:
             application/json:
-              examples:
-                success:
-                  value:
-                    status: 0
-                    message: Registrasi berhasil silahkan login
-                    data: null
-                email_invalid:
-                  value:
-                    status: 102
-                    message: Parameter email tidak sesuai format
-                    data: null
+              example:
+                status: 0
+                message: Registrasi berhasil
+                data: null
+
+        "409":
+          description: Email sudah terdaftar
+          content:
+            application/json:
+              example:
+                status: 409
+                message: Email sudah terdaftar
+                data: null
+
+        "400":
+          description: Parameter tidak valid
+          content:
+            application/json:
+              example:
+                status: 400
+                message: Parameter tidak valid
+                data: null
+
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                status: 500
+                message: Terjadi kesalahan server
+                data: null
 
   /login:
     post:
       tags:
-        - Module Membership
-      summary: Login User
-      description: >
-        Endpoint untuk autentikasi user.
-        Jika berhasil, sistem akan mengembalikan token JWT.
+        - Authentication
+      summary: Login user
       requestBody:
         required: true
         content:
@@ -87,32 +100,44 @@ paths:
                   example: user@nutech-integrasi.com
                 password:
                   type: string
-                  example: hadi1234
+                  example: password123
       responses:
         "200":
-          description: Login Response
+          description: Login berhasil
           content:
             application/json:
-              examples:
-                success:
-                  summary: Login Berhasil
-                  value:
-                    status: 0
-                    message: Login Sukses
-                    data:
-                      token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                email_invalid:
-                  summary: Format Email Tidak Valid
-                  value:
-                    status: 102
-                    message: Parameter email tidak sesuai format
-                    data: null
-                login_failed:
-                  summary: Username atau Password Salah
-                  value:
-                    status: 103
-                    message: Username atau password salah
-                    data: null
+              example:
+                status: 0
+                message: Login sukses
+                data:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+        "401":
+          description: Username atau password salah
+          content:
+            application/json:
+              example:
+                status: 401
+                message: Username atau password salah
+                data: null
+
+        "400":
+          description: Parameter tidak valid
+          content:
+            application/json:
+              example:
+                status: 400
+                message: Parameter tidak valid
+                data: null
+
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                status: 500
+                message: Terjadi kesalahan server
+                data: null
 
   /profile:
     get:
@@ -366,8 +391,9 @@ paths:
     post:
       tags:
         - Module Transaction
-      summary: Transaction Payment
-      description: API Transaction **Private** (memerlukan Bearer Token JWT).
+      summary: Payment Transaction
+      description: >
+        Endpoint untuk melakukan transaksi pembayaran berdasarkan service_code.
       security:
         - bearerAuth: []
       requestBody:
@@ -391,27 +417,54 @@ paths:
                 status: 0
                 message: Transaksi berhasil
                 data:
-                  invoice_number: "1765818576085"
+                  invoice_number: INV17082023-001
                   service_code: PULSA
-                  service_name: Pulsa
+                  description: Pulsa Telkomsel
                   transaction_type: PAYMENT
-                  total_amount: 40000
-                  created_on: "2025-12-15T17:09:36.085Z"
+                  total_amount: 10000
+                  created_on: "2023-08-17T10:00:00Z"
+
         "400":
-          description: Saldo tidak mencukupi
+          description: Permintaan tidak valid atau saldo tidak mencukupi
           content:
             application/json:
-              example:
-                status: 105
-                message: Saldo tidak mencukupi
-                data: null
+              examples:
+                saldo_tidak_cukup:
+                  value:
+                    status: 402
+                    message: Saldo tidak mencukupi
+                    data: null
+                parameter_invalid:
+                  value:
+                    status: 400
+                    message: Parameter tidak valid
+                    data: null
+
         "401":
           description: Token tidak valid atau kadaluarsa
           content:
             application/json:
               example:
-                status: 108
+                status: 401
                 message: Token tidak valid atau kadaluarsa
+                data: null
+
+        "404":
+          description: Service atau Layanan tidak ditemukan
+          content:
+            application/json:
+              example:
+                status: 404
+                message: Service atau Layanan tidak ditemukan
+                data: null
+
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                status: 500
+                message: Terjadi kesalahan server
                 data: null
 
   /transaction/history:
