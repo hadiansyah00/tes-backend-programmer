@@ -9,34 +9,33 @@ const membershipRoutes = require("./routes/index.routes");
 const db = require("./config/db");
 
 const app = express();
-
 /**
  * =====================================================
- * 🔐 CORS CONFIG (PRODUCTION SAFE)
+ * 🔐 CORS CONFIG (PRODUCTION SAFE – NODE 22 COMPATIBLE)
  * =====================================================
  */
 const allowedOrigins = [
   "https://tes-backend-programmer.railway.app", // Swagger & frontend
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // allow non-browser clients (Postman, curl)
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow non-browser tools (Postman, curl)
+      if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-    return callback(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+      // JANGAN throw Error (biar app tidak crash)
+      return callback(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 /**
  * =====================================================
