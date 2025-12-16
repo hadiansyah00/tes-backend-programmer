@@ -12,13 +12,26 @@ const app = express();
 
 /**
  * =====================================================
- * 🌐 CORS CONFIG (FINAL – BROWSER & RAILWAY SAFE)
+ * 🌐 CORS CONFIG (IMPROVED & STABLE)
  * =====================================================
  */
-
 app.use(
   cors({
-    origin: true, // echo back request origin (AMAN UNTUK BROWSER & SWAGGER)
+    origin: (origin, callback) => {
+      // Allow non-browser tools (Postman, curl)
+      if (!origin) return callback(null, true);
+
+      // Allow all Railway subdomains
+      if (
+        origin.endsWith(".railway.app") ||
+        origin.endsWith(".up.railway.app")
+      ) {
+        return callback(null, true);
+      }
+
+      // Allow everything else (no hard reject to avoid browser crash)
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
