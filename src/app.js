@@ -15,7 +15,6 @@ const app = express();
  * 🌐 CORS CONFIG (FINAL – BROWSER & RAILWAY SAFE)
  * =====================================================
  */
-const cors = require("cors");
 
 app.use(
   cors({
