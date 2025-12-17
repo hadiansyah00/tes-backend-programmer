@@ -1,4 +1,4 @@
-const { pool } = require("../config/db");
+const db = require("../config/db");
 const { success, error } = require("../utils/response");
 
 exports.getBannerList = async () => {

@@ -1,7 +1,42 @@
 const express = require("express");
+const cors = require("cors");
 const router = express.Router();
 
-// Controllers
+// ======================
+// CORS CONFIG
+// ======================
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+// 🔥 HANDLE PREFLIGHT (EXPRESS v5 SAFE)
+router.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
+
+// 🔥 APPLY CORS KE REQUEST LAIN
+router.use(cors(corsOptions));
+
+/**
+ * ======================
+ * CONTROLLERS
+ * ======================
+ */
 const authCtrl = require("../controllers/auth.controller");
 const registerCtrl = require("../controllers/register.controller");
 const profileCtrl = require("../controllers/profile.controller");
@@ -12,12 +47,16 @@ const topupCtrl = require("../controllers/topup.controller");
 const transactionCtrl = require("../controllers/transaction.controller");
 const historyCtrl = require("../controllers/history.controller");
 
-// Middlewares
+// ======================
+// MIDDLEWARES
+// ======================
 const validate = require("../middlewares/validate.middleware");
 const auth = require("../middlewares/auth.middleware");
 const upload = require("../config/multer");
 
-// Validators
+// ======================
+// VALIDATORS
+// ======================
 const schema = require("../validators/validator");
 
 /**
@@ -34,8 +73,9 @@ router.get("/banner", bannerCtrl.getBannerList);
  * PROTECTED ROUTES
  * ======================
  */
-router.get("/services", auth, serviceCtrl.getServiceList); // ⬅️ public (recommended)
+router.get("/services", auth, serviceCtrl.getServiceList);
 router.get("/profile", auth, profileCtrl.getProfile);
+
 router.put(
   "/profile",
   auth,

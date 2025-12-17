@@ -15,14 +15,25 @@ exports.getBalanceByUserId = async (userId) => {
     const result = await pool.query(query, [userId]);
 
     if (result.rowCount === 0) {
-      return error(404, "Balance belum diinisialisasi");
+      return {
+        httpCode: 200,
+        body: success(0, "Saldo anda kosong", {
+          balance: 0,
+        }),
+      };
     }
 
-    return success(200, "Get Balance Berhasil", {
-      balance: result.rows[0].balance,
-    });
+    return {
+      httpCode: 200,
+      body: success(0, "Get balance berhasil", {
+        balance: result.rows[0].balance,
+      }),
+    };
   } catch (err) {
     console.error("GET BALANCE SERVICE ERROR:", err);
-    return error(500, "Terjadi kesalahan server");
+    return {
+      httpCode: 500,
+      body: error(500, "Terjadi kesalahan server"),
+    };
   }
 };

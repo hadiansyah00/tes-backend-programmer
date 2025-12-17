@@ -1,42 +1,13 @@
 require("dotenv").config();
 
 const express = require("express");
-const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 
 const swaggerSpec = require("./config/swagger");
-const membershipRoutes = require("./routes/index.routes");
+const routes = require("./routes/index.routes");
 const db = require("./config/db");
 
 const app = express();
-
-/**
- * =====================================================
- * 🌐 CORS CONFIG (IMPROVED & STABLE)
- * =====================================================
- */
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow non-browser tools (Postman, curl)
-      if (!origin) return callback(null, true);
-
-      // Allow all Railway subdomains
-      if (
-        origin.endsWith(".railway.app") ||
-        origin.endsWith(".up.railway.app")
-      ) {
-        return callback(null, true);
-      }
-
-      // Allow everything else (no hard reject to avoid browser crash)
-      return callback(null, true);
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
 
 /**
  * =====================================================
@@ -57,6 +28,7 @@ app.use(
  * =====================================================
  * 🌐 Global Middlewares
  * =====================================================
+ * ❗ CORS TIDAK di sini (sudah di routes)
  */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: false }));
@@ -70,15 +42,11 @@ app.use("/uploads", express.static("uploads"));
 
 /**
  * =====================================================
- * 🧪 Health Check
+ * 🏠 Root → Redirect ke Swagger
  * =====================================================
  */
 app.get("/", (req, res) => {
-  res.json({
-    status: 0,
-    message: "API running",
-    env: process.env.NODE_ENV || "development",
-  });
+  return res.redirect("/api-docs");
 });
 
 /**
@@ -86,7 +54,7 @@ app.get("/", (req, res) => {
  * 🚏 API Routes
  * =====================================================
  */
-app.use("/", membershipRoutes);
+app.use("/", routes);
 
 /**
  * =====================================================
@@ -127,8 +95,8 @@ app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err);
 
   res.status(err.status || 500).json({
-    status: err.code || 99,
-    message: err.message || "Internal Server Error",
+    status: err.code ?? 99,
+    message: err.message ?? "Internal Server Error",
     data: null,
   });
 });
