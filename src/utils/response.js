@@ -1,25 +1,15 @@
-exports.success = (httpCode = 200, message = "Success", data = null) => {
+exports.success = (status = 0, message = "Sukses", data = null) => {
   return {
-    httpCode,
-    body: {
-      status: 0,
-      message,
-      data,
-    },
+    status,
+    message,
+    data,
   };
 };
 
-exports.error = (
-  httpCode = 400,
-  message = "Terjadi kesalahan",
-  appCode = 99
-) => {
+exports.error = (status = 99, message = "Terjadi kesalahan") => {
   return {
-    httpCode,
-    body: {
-      status: appCode,
-      message,
-      data: null,
-    },
+    status,
+    message,
+    data: null,
   };
 };
