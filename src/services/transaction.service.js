@@ -25,7 +25,10 @@ exports.createTransaction = async (userId, serviceCode) => {
 
     if (serviceResult.rowCount === 0) {
       await client.query("ROLLBACK");
-      return error(404, "Service atau Layanan tidak ditemukan");
+      return {
+        httpCode: 404,
+        body: error(99, "Service atau Layanan tidak ditemukan"),
+      };
     }
 
     const service = serviceResult.rows[0];
@@ -46,11 +49,14 @@ exports.createTransaction = async (userId, serviceCode) => {
 
     if (updateBalanceResult.rowCount === 0) {
       await client.query("ROLLBACK");
-      return error(400, "Saldo tidak mencukupi");
+      return {
+        httpCode: 400,
+        body: error(99, "Saldo tidak mencukupi"),
+      };
     }
 
     // ===============================
-    // 3️⃣ Generate invoice (simple & safe)
+    // 3️⃣ Generate invoice
     // ===============================
     const invoiceNumber = await generateInvoice(client);
 
@@ -80,21 +86,28 @@ exports.createTransaction = async (userId, serviceCode) => {
 
     await client.query("COMMIT");
 
-    return success(200, "Transaksi berhasil", {
-      invoice_number: invoiceNumber,
-      service_code: service.service_code,
-      description: service.service_name,
-      transaction_type: "PAYMENT",
-      total_amount: service.service_tariff,
-      created_on: new Date(),
-    });
+    return {
+      httpCode: 200,
+      body: success(0, "Transaksi berhasil", {
+        invoice_number: invoiceNumber,
+        service_code: service.service_code,
+        description: service.service_name,
+        transaction_type: "PAYMENT",
+        total_amount: service.service_tariff,
+        created_on: new Date(),
+      }),
+    };
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("[TRANSACTION_SERVICE_ERROR]", {
       message: err.message,
       stack: err.stack,
     });
-    return error(500, "Terjadi kesalahan server");
+
+    return {
+      httpCode: 500,
+      body: error(99, "Terjadi kesalahan server"),
+    };
   } finally {
     client.release();
   }

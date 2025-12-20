@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const { generateToken } = require("../utils/jwt");
 const { success, error } = require("../utils/response");
 const db = require("../config/db");
 
@@ -10,13 +9,16 @@ exports.register = async (payload) => {
   const { email, first_name, last_name, password } = payload;
 
   try {
-    // 1️⃣ Cek email dulu (WAJIB)
+    // 1️⃣ Cek email dulu
     const emailCheck = await db.query("SELECT 1 FROM users WHERE email = $1", [
       email,
     ]);
 
     if (emailCheck.rowCount > 0) {
-      return error(409, "Email sudah terdaftar", 409);
+      return {
+        httpCode: 409,
+        body: error(409, "Email sudah terdaftar"),
+      };
     }
 
     // 2️⃣ Hash password
@@ -31,9 +33,17 @@ exports.register = async (payload) => {
       [email, first_name, last_name, hashedPassword]
     );
 
-    return success(200, "Registrasi berhasil", null);
+    // 4️⃣ Success
+    return {
+      httpCode: 201,
+      body: success(0, "Registrasi berhasil", null),
+    };
   } catch (err) {
     console.error("[REGISTER_SERVICE_ERROR]", err);
-    return error(500, "Terjadi kesalahan server");
+
+    return {
+      httpCode: 500,
+      body: error(500, "Terjadi kesalahan server"),
+    };
   }
 };

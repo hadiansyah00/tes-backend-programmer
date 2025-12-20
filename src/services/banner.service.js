@@ -14,9 +14,16 @@ exports.getBannerList = async () => {
 
     const { rows } = await db.query(query);
 
-    return success(200, "Success", rows);
+    return {
+      httpCode: 200,
+      body: success(0, "Success", rows),
+    };
   } catch (err) {
     console.error("[BANNER_SERVICE_ERROR]", err);
-    return error(500, "Terjadi kesalahan server");
+
+    return {
+      httpCode: 500,
+      body: error(99, "Terjadi kesalahan server"),
+    };
   }
 };
